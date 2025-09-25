@@ -313,7 +313,7 @@ export default function Chat() {
             }
            </div>
         </div>
-        <div className='absolute bottom-5 w-full bg-black px-3 py-3  '>
+        <div className=' w-full bg-black px-3 py-3  '>
             <form onSubmit={(e) => {
               e.preventDefault();
               if (shadowText) handleSubmitText(e);
