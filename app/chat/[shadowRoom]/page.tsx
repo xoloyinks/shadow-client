@@ -200,7 +200,7 @@ export default function Chat() {
             {active}
           </div>
         </div>
-        <div ref={chatScroll} className='pt-24 h-[91vh] overflow-y-scroll'>
+        <div ref={chatScroll} className='pt-24 h-[91dvh] overflow-y-scroll'>
             <p className='text-gray-600 text-center'>{notification}</p>
            <div className='py-3'>
            {
@@ -313,7 +313,7 @@ export default function Chat() {
             }
            </div>
         </div>
-        <div className='absolute bottom-0 w-full bg-black px-3 py-3  '>
+        <div className='absolute bottom-5 w-full bg-black px-3 py-3  '>
             <form onSubmit={(e) => {
               e.preventDefault();
               if (shadowText) handleSubmitText(e);
