@@ -49,8 +49,8 @@ export default function Join() {
         <Link className='absolute top-5 ' href='/' >Go Back Home</Link>
         <h1 className='mb-5 text-xl'>Enter Shadow ID</h1>
         <form action="" onSubmit={handleSubmit} className=' w-8/12 flex flex-col gap-3'>
-            <input id='joinInput' type="text" className='bg-transparent border-b-2 border-white py-2 tracking-wide w-full focus:outline-none text-center'  value={shadowId} onChange={(e:any) => setShadowId(e.target.value)}  />
-            <button className='text-black bg-white px-5 py-2 mx-auto w-32 flex justify-center items-center'>{loading ? <FaSpinner className='animate-spin' /> : 'Next'}</button>
+            <input id='joinInput' required type="text" className='bg-transparent border-b-2 border-white py-2 tracking-wide w-full focus:outline-none text-center'  value={shadowId} onChange={(e:any) => setShadowId(e.target.value)}  />
+            <button disabled={loading} className='text-black bg-white px-5 py-2 mx-auto w-32 flex justify-center items-center'>{loading ? <FaSpinner className='animate-spin' /> : 'Next'}</button>
         </form>
     </section>
   )
