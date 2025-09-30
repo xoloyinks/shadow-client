@@ -26,26 +26,76 @@ type Chat = {
   _id?: string
 }
 
-type PreviousMessage = {
-  message: string
-  messageType: string
-  sender: string
-  shadowId: string
-  timestamp: string
-  reply?: {
-    sender: string
-    message: string
+type SwipeableChatsProps = {
+  chat: Chat[];
+  setSelectedChat: (chat: Chat) => void;
+};
+
+const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) => void }> = ({ datum, setSelectedChat }) => {
+  const [translateX, setTranslateX] = useState(0);
+  const handlers = useSwipeable({
+    onSwiping: (eventData) => {
+      const move = Math.max(Math.min(eventData.deltaX, 60), -60);
+      setTranslateX(move);
+    },
+    onSwiped: (eventData) => {
+      setSelectedChat(datum);
+      if (eventData.absX > 100 || eventData.absX < 0) {
+        setTranslateX(eventData.deltaX > 0 ? 60 : -60);
+        setTimeout(() => {
+          setTranslateX(0);
+        }, 200);
+      } else {
+        setTranslateX(0);
+      }
+    },
+    preventScrollOnSwipe: true,
+    trackMouse: true,
+  });
+
+  if (datum.messageType === 'text') {
+    return (
+      <p
+        {...handlers}
+        style={{
+          transform: `translateX(${translateX}px)`,
+          transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
+        }}
+        className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex min-w-[100px] flex-col-reverse gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
+        <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
+        <span className='tracking-wide text-sm'>{datum.message}</span>
+        <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
+      </p>
+    );
+  } else if (datum.messageType === 'replyText') {
+    return (
+      <div
+        {...handlers}
+        style={{
+          transform: `translateX(${translateX}px)`,
+          transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
+        }}
+        className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex flex-col gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
+        <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
+        <div className='pl-2 border-l-2 border-gray-600'>
+          <span className='text-sm text-gray-500'>Replying to {datum.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : datum.reply?.sender}</span>
+          <p className='text-sm italic text-gray-400'>{datum.reply?.message}</p>
+        </div>
+        <span className='tracking-wide text-sm'>{datum.message}</span>
+        <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
+      </div>
+    );
   }
-  side?: boolean
-  __v: number
-  _id: string
-}
+  return null;
+};
 
-type CaptionData = {
-  avatar: string,
-  caption: string
-}
-
+const SwipeableChats: React.FC<SwipeableChatsProps> = ({ chat, setSelectedChat }) => (
+  <>
+    {chat.map((datum: Chat, key: number) => (
+      <SwipeableChatItem key={key} datum={datum} setSelectedChat={setSelectedChat} />
+    ))}
+  </>
+);
 
 export default function Chat() {
   const [shadowText, setShadowText] = useState('');
@@ -59,7 +109,7 @@ export default function Chat() {
   // const socket = io('ws://localhost:8000/');
   const chatScroll = useRef<any>(null);
   const [file, setFile] = useState<any>();
-  const [prevMessages, setPrevMessages] = useState<PreviousMessage[]>([]);
+  const [prevMessages, setPrevMessages] = useState<Chat[]>([]);
   const [showEmojis, setShowEmojis] = useState(false);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   
@@ -158,65 +208,7 @@ export default function Chat() {
         socket.emit('image', {message: file_name, rooms: id, user: user, time: currentTime, messageType: messageType});
   } 
 
-  const SwipeableChats = (props: PreviousMessage[]) => {
-      return(
-        messageData.map((datum: Chat, key: number) => {
-          const [translateX, setTranslateX] = useState(0);
-          const handlers = useSwipeable({
-            onSwiping:(eventData) => {
-              const move = Math.max(Math.min(eventData.deltaX, 60), -60);
-              setTranslateX(move);
-            },
-            onSwiped: (eventData) => {
-              setSelectedChat(datum);
-              chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
-              if(eventData.absX > 100 || eventData.absX < 0){
-                setTranslateX(eventData.deltaX > 0 ? 60 : -60);
-                setTimeout(() => {
-                  setTranslateX(0);
-                }, 200)
-              }else{
-                setTranslateX(0);
-              }
-            },
-            preventScrollOnSwipe: true,
-            trackMouse: true,
-          });
-          return (
-            datum.messageType === 'text' ?
-            <p 
-              {...handlers} 
-              style={{
-                transform: `translateX(${translateX}px)`,
-                transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
-              }}
-              key={key} 
-              className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex min-w-[100px] flex-col-reverse gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
-              <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
-              <span className='tracking-wide text-sm'>{datum.message}</span>
-              <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
-            </p> : datum.messageType === 'replyText' ?
-            <div
-              {...handlers} 
-              style={{
-                transform: `translateX(${translateX}px)`,
-                transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
-              }}
-              key={key}
-              className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex flex-col gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
-              
-              <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
-              <div className='pl-2 border-l-2 border-gray-600'>
-                <span className='text-sm text-gray-500'>Replying to {datum.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : datum.reply?.sender}</span>
-                <p className='text-sm italic text-gray-400'>{datum.reply?.message}</p>
-              </div>
-              <span className='tracking-wide text-sm'>{datum.message}</span>
-              <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
-              
-            </div> : null
-          )}
-      ))
-  }
+  
 
   console.log(messageData)
 
@@ -232,7 +224,7 @@ export default function Chat() {
             <p className='text-gray-600 text-center'>{notification}</p>
            <div className='py-3'>
               {
-                prevMessages.length > 0 && <SwipeableChats {...prevMessages} /> 
+                messageData.length > 0 && <SwipeableChats chat={messageData} setSelectedChat={setSelectedChat} /> 
               }
            </div>
         </div>
