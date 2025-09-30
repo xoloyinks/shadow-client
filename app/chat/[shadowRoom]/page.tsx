@@ -39,8 +39,11 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
       setTranslateX(move);
     },
     onSwiped: (eventData) => {
-      setSelectedChat(datum);
-      if (eventData.absX > 100 || eventData.absX < 0) {
+      if(eventData.deltaX > 50){
+        setSelectedChat(datum);
+      }
+      
+      if (eventData.absX > 200) {
         setTranslateX(eventData.deltaX > 0 ? 60 : -60);
         setTimeout(() => {
           setTranslateX(0);
@@ -61,7 +64,7 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
           transform: `translateX(${translateX}px)`,
           transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
         }}
-        className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex min-w-[100px] flex-col-reverse gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
+        className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex min-w-[100px] flex-col-reverse gap-2 rounded-xl ${datum.side ? 'rounded-br-none ml-auto' : 'mr-auto rounded-bl-none'}`}>
         <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
         <span className='tracking-wide text-sm'>{datum.message}</span>
         <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
@@ -75,7 +78,7 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
           transform: `translateX(${translateX}px)`,
           transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
         }}
-        className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex flex-col gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
+        className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex flex-col gap-2 rounded-xl ${datum.side ? 'rounded-br-none ml-auto' : 'mr-auto rounded-bl-none'}`}>
         <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
         <div className='pl-2 border-l-2 border-gray-600'>
           <span className='text-sm text-gray-500'>Replying to {datum.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : datum.reply?.sender}</span>
@@ -210,7 +213,7 @@ export default function Chat() {
 
   
 
-  console.log(messageData)
+  // console.log(messageData)
 
   return (
     <section className='bg-black w-screen h-screen relative'>
@@ -230,7 +233,7 @@ export default function Chat() {
         </div>
         {
                 selectedChat &&
-                <div className='w-full backdrop-blur-xl z-50 absolute bottom-20 px-5'>
+                <div className='w-full bg-black z-50 absolute bottom-20 px-5'>
                   <div className='w-fit bg-gray-900 rounded-xl p-3 pr-10 flex flex-col gap-3 relative'>
                     <span className='text-gray-500 text-xs'>Replying to {selectedChat.side ? "Me" : selectedChat.sender}</span>
                     <p className='text-gray-400 text-sm'>{selectedChat.message}</p>
