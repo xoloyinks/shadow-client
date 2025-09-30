@@ -1,40 +1,44 @@
 'use client'
-import Image from 'next/image';
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
-import { AudioRecorder, useAudioRecorder } from 'react-audio-voice-recorder';
 import { io } from 'socket.io-client'
-import { FaStop } from "react-icons/fa";
-import { FaPause } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
-import { FaPlay } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
 import { BsFillSendFill } from "react-icons/bs";
 import { UserData } from '@/app/context';
-import { LuGalleryVerticalEnd } from "react-icons/lu";
 import { BsEmojiSmile } from "react-icons/bs";
-import { HiMicrophone } from "react-icons/hi2";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import axios from 'axios';
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
-
+import { useSwipeable } from 'react-swipeable';
 
 type Chat = {
   message: string,
-  time: string, 
-  user: string,
+  timestamp: string, 
+  sender: string,
   side: boolean,
+  messageType: string,
+  reply?: {
+    sender: string
+    message: string
+  },
+  shadowId?: string
+  __v?: number
+  _id?: string
+}
+
+type PreviousMessage = {
+  message: string
   messageType: string
+  sender: string
+  shadowId: string
+  timestamp: string
+  reply?: {
+    sender: string
+    message: string
+  }
+  side?: boolean
+  __v: number
+  _id: string
 }
 
 type CaptionData = {
@@ -51,14 +55,13 @@ export default function Chat() {
   const [messageData, setMessageData] = useState<Chat[]>([]);
   const [auth, setAuth] = useContext(UserData);
   const route = useRouter();
-  const socket = io('wss://shadow-server-b7v0.onrender.com');
+  const socket = io('wss://shadow-server-b7v0.onrender.com/');
+  // const socket = io('ws://localhost:8000/');
   const chatScroll = useRef<any>(null);
   const [file, setFile] = useState<any>();
-  const [imageCaption, setImageCaption] = useState('');
-  const [captionData, setCaptionData] = useState<CaptionData[]>([]);
-  const [prevMessages, setPrevMessages] = useState([]);
-  const [prevImageCaption, setPrevImageCaption] = useState([]);
+  const [prevMessages, setPrevMessages] = useState<PreviousMessage[]>([]);
   const [showEmojis, setShowEmojis] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   
   useEffect(() => {
     socketInitailization();
@@ -71,18 +74,16 @@ export default function Chat() {
     socket.on('chat', (data: Chat) => {
       const id = localStorage.getItem('uniqueUser');
       var side: boolean;
-      if(data.user !== id){
+      if(data.sender !== id){
         audio.play();
         side = false;
       }else{
         side = true;
       }
-      setMessageData(prevData => [...prevData, {message: data.message, user: data.user, time: data.time, side: side, messageType: data.messageType }]);
+      setMessageData(prevData => [...prevData, {message: data.message, sender: data.sender, timestamp: data.timestamp, side: side, messageType: data.messageType, reply: data.reply }]);;
     });
 
-    socket.on('imageData', ({image, caption}: {image:string, caption: string}) => {
-      setCaptionData(prevData => [...prevData, {avatar: image, caption: caption }]);
-    });
+   
 
     chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
   }, [messageData]);
@@ -111,11 +112,8 @@ export default function Chat() {
 
       socket.on('prevMessages', (data:any) => {
         setPrevMessages(data);
+        setMessageData(data);
         chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
-      })
-
-      socket.on('prevImageCaptions', (data: any) => {
-        setPrevImageCaption(data);
       })
     }else{
       route.push('/join');
@@ -124,14 +122,15 @@ export default function Chat() {
 
   const handleSubmitText = (e: any) => {
       e.preventDefault();
-      const messageType = 'text';
+      const messageType = selectedChat ? 'replyText' : 'text' ;
       const time = new Date();
       const hour = time.getHours();
       const min = time.getMinutes();
       const currentTime = hour + ":" + min;
       const id: any = localStorage.getItem('shadowId');
       const user: any = localStorage.getItem('uniqueUser');
-      socket.emit('text', {message: shadowText, rooms: id, user: user, time: currentTime, messageType: messageType});
+      socket.emit('text', {message: shadowText, rooms: id, user: user, time: currentTime, messageType: messageType, reply: selectedChat ? { sender: selectedChat.sender, message: selectedChat.message } : null });
+      setSelectedChat(null);
       setShadowText('');
   }
 
@@ -159,38 +158,67 @@ export default function Chat() {
         socket.emit('image', {message: file_name, rooms: id, user: user, time: currentTime, messageType: messageType});
   } 
 
-  const handleImageCaption = async(e: any) => {
-    e.preventDefault();
-    const time = new Date();
-    const hour = time.getHours();
-    const min = time.getMinutes();
-    const currentTime = hour + ":" + min;
-    const id: any = localStorage.getItem('shadowId');
-    const user: any = localStorage.getItem('uniqueUser');
-    const formData = new FormData();
-    formData.append('file', file);
-    const upload = axios.post('https://shadow-server-b7v0.onrender.com/uploadedImage', formData, {
-      headers: {
-        "Content-Type": 'multipart/form-data'
-      }
-    });
-    const messageType = "image_caption";
-    const file_name: any = await upload.then(res => res.data);
-    socket.emit('image', {message: file_name, rooms: id, user: user, time: currentTime, messageType: messageType});
-    socket.emit('image_caption', {image: file_name, caption: imageCaption, rooms: id});
-} 
+  const SwipeableChats = (props: PreviousMessage[]) => {
+      return(
+        messageData.map((datum: Chat, key: number) => {
+          const [translateX, setTranslateX] = useState(0);
+          const handlers = useSwipeable({
+            onSwiping:(eventData) => {
+              const move = Math.max(Math.min(eventData.deltaX, 60), -60);
+              setTranslateX(move);
+            },
+            onSwiped: (eventData) => {
+              setSelectedChat(datum);
+              chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
+              if(eventData.absX > 100 || eventData.absX < 0){
+                setTranslateX(eventData.deltaX > 0 ? 60 : -60);
+                setTimeout(() => {
+                  setTranslateX(0);
+                }, 200)
+              }else{
+                setTranslateX(0);
+              }
+            },
+            preventScrollOnSwipe: true,
+            trackMouse: true,
+          });
+          return (
+            datum.messageType === 'text' ?
+            <p 
+              {...handlers} 
+              style={{
+                transform: `translateX(${translateX}px)`,
+                transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
+              }}
+              key={key} 
+              className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex min-w-[100px] flex-col-reverse gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
+              <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
+              <span className='tracking-wide text-sm'>{datum.message}</span>
+              <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
+            </p> : datum.messageType === 'replyText' ?
+            <div
+              {...handlers} 
+              style={{
+                transform: `translateX(${translateX}px)`,
+                transition: translateX === 0 ? "transform 0.2s ease-out" : "none",
+              }}
+              key={key}
+              className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex flex-col gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
+              
+              <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
+              <div className='pl-2 border-l-2 border-gray-600'>
+                <span className='text-sm text-gray-500'>Replying to {datum.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : datum.reply?.sender}</span>
+                <p className='text-sm italic text-gray-400'>{datum.reply?.message}</p>
+              </div>
+              <span className='tracking-wide text-sm'>{datum.message}</span>
+              <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
+              
+            </div> : null
+          )}
+      ))
+  }
 
-  
-
-  const recorderControls = useAudioRecorder()
-  // const addAudioElement = (blob: any) => {
-  //   const url = URL.createObjectURL(blob);
-  //   const audio = document.createElement("audio");
-  //   audio.src = url;
-  //   audio.controls = true;
-  //   document.body.appendChild(audio);
-  // };
-  // console.log("Record blob: " + recorderControls.recordingBlob)
+  console.log(messageData)
 
   return (
     <section className='bg-black w-screen h-screen relative'>
@@ -200,120 +228,27 @@ export default function Chat() {
             {active}
           </div>
         </div>
-        <div ref={chatScroll} className='pt-24 h-[91dvh] overflow-y-scroll'>
+        <div ref={chatScroll} className={`pt-24 h-[91dvh] ${selectedChat ? 'pb-24' : ''} overflow-y-scroll`}>
             <p className='text-gray-600 text-center'>{notification}</p>
            <div className='py-3'>
-           {
-              prevMessages.map((datum: any, key: number) => (
-                datum.messageType === 'text' ? 
-                <p key={key} className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex min-w-[100px] flex-col-reverse gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
-                  <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
-                  <span className='tracking-wide text-sm'>{datum.message}</span>
-                  <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
-                </p> : 
-                datum.messageType === 'image' ?
-                <p key={key} className={`w-fit p-2 bg-gray-800 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'} text-gray-400 mx-2 mb-2 relative flex flex-col` }>
-                   <span className={`text-sm font-semibold text-gray-500 ${datum.side ? " float-end" : 'float-start'}`}>
-                    {datum.side ? "Me" : datum.sender}
-                  </span>
-                   <span className='rounded-xl mb-2 w-fit'>
-                      <Dialog>
-                        <DialogTrigger><Image alt='Image' width={300} height={300} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl py-3' /></DialogTrigger>
-                        <DialogContent>
-                          <Image alt='Image' width={700} height={700} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl py-3' />
-                        </DialogContent>
-                      </Dialog>
-                   </span>
-                   <span className={`mr-2 text-[12px] font-semibold bottom-2 text-right absolute right-2`}>{datum.timestamp}</span>
-                </p> :
-                // Image with captions
-                 datum.messageType === 'image_caption' ?
-                 <p key={key} className={`w-fit p-2 bg-gray-800 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'} text-gray-400 mx-2 mb-2 relative flex flex-col sm:max-w-[300px] max-w-[80%]` }>
-                    <span className={`text-sm font-semibold text-gray-500 ${datum.side ? " float-end" : 'float-start'}`}>
-                     {datum.side ? "Me" : datum.sender}
-                   </span>
-                    <span className='rounded-xl mb-2 w-fit'>
-                       <Dialog>
-                         <DialogTrigger><Image alt='Image' width={300} height={300} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl w-full' /></DialogTrigger>
-                         <DialogContent>
-                           <Image alt='Image' width={700} height={700} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl ' />
-                           <DialogFooter className='text-gray-400 text-center text-sm'>
-                             {prevImageCaption.map((data: any, key: any) => (
-                                data.image === datum.message ? `${data.caption}` : null
-                             ))}
-                           </DialogFooter>
-                         </DialogContent>
-                       </Dialog>
-                    </span>
-                    <span className='text-sm my-2 w-[80%]'>
-                      {prevImageCaption.map((data: any, key: any) => (
-                          data.image === datum.message ? `${data.caption}` : null
-                      ))}
-                    </span>
-                    <span className={`mr-2 text-[12px] font-semibold bottom-2 text-right absolute right-2`}>{datum.timestamp}</span>
-                 </p> :
-                 "Null"
-
-              )
-              )
-            }
-            {
-              messageData.map((datum: Chat, key: number) => (
-                datum.messageType === 'text' ? 
-                <p key={key} className={`text-gray-400 mb-2 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex min-w-[100px] flex-col-reverse gap-2 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'}`}>
-                  <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.time}</span>
-                  <span className='tracking-wide text-sm'>{datum.message}</span>
-                  <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.user}</span>
-                </p> : 
-                datum.messageType === 'image' ?
-                <p key={key} className={`w-fit p-2 bg-gray-800 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'} text-gray-400 mx-2 mb-2 relative flex flex-col` }>
-                   <span className={`text-sm font-semibold text-gray-500 ${datum.side ? " float-end" : 'float-start'}`}>
-                    {datum.side ? "Me" : datum.user}
-                  </span>
-                   <span className='rounded-xl mb-2 w-fit'>
-                      <Dialog>
-                        <DialogTrigger><Image alt='Image' width={300} height={300} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl py-3' /></DialogTrigger>
-                        <DialogContent>
-                          <Image alt='Image' width={700} height={700} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl py-3' />
-                        </DialogContent>
-                      </Dialog>
-                   </span>
-                   <span className={`mr-2 text-[12px] font-semibold bottom-2 text-right absolute right-2`}>{datum.time}</span>
-                </p> :
-                // Image with captions
-                 datum.messageType === 'image_caption' ?
-                 <p key={key} className={`w-fit p-2 bg-gray-800 rounded-xl ${datum.side ? 'ml-auto' : 'mr-auto'} text-gray-400 mx-2 mb-2 relative flex flex-col sm:max-w-[300px] max-w-[80%]` }>
-                    <span className={`text-sm font-semibold text-gray-500 ${datum.side ? " float-end" : 'float-start'}`}>
-                     {datum.side ? "Me" : datum.user}
-                   </span>
-                    <span className='rounded-xl mb-2 w-fit'>
-                       <Dialog>
-                         <DialogTrigger><Image alt='Image' width={300} height={300} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl w-full' /></DialogTrigger>
-                         <DialogContent>
-                           <Image alt='Image' width={700} height={700} key={key} src={`https://shadow-server-b7v0.onrender.com/images/${datum.message}`} className='roundex-xl ' />
-                           <DialogFooter className='text-gray-400 text-center text-sm'>
-                             {captionData.map((data: CaptionData, key: any) => (
-                                data.avatar === datum.message ? `${data.caption}` : null
-                             ))}
-                           </DialogFooter>
-                         </DialogContent>
-                       </Dialog>
-                    </span>
-                    <span className='text-sm my-2 w-[80%]'>
-                      {captionData.map((data: CaptionData, key: any) => (
-                          data.avatar === datum.message ? `${data.caption}` : null
-                      ))}
-                    </span>
-                    <span className={`mr-2 text-[12px] font-semibold bottom-2 text-right absolute right-2`}>{datum.time}</span>
-                 </p> :
-                 "Null"
-
-              )
-              )
-            }
+              {
+                prevMessages.length > 0 && <SwipeableChats {...prevMessages} /> 
+              }
            </div>
         </div>
-        <div className=' w-full bg-black px-3 py-3  '>
+        {
+                selectedChat &&
+                <div className='w-full backdrop-blur-xl z-50 absolute bottom-20 px-5'>
+                  <div className='w-fit bg-gray-900 rounded-xl p-3 pr-10 flex flex-col gap-3 relative'>
+                    <span className='text-gray-500 text-xs'>Replying to {selectedChat.side ? "Me" : selectedChat.sender}</span>
+                    <p className='text-gray-400 text-sm'>{selectedChat.message}</p>
+                    <button onClick={() => setSelectedChat(null)} className='w-fit ml-auto text-sm text-gray-700 font-semibold absolute top-2 right-2'><FaTimes /></button>
+                  </div>
+                </div>
+              }
+        
+        <div className=' w-full bg-black px-3 py-3 relative'>
+              
             <form onSubmit={(e) => {
               e.preventDefault();
               if (shadowText) handleSubmitText(e);
@@ -335,56 +270,7 @@ export default function Chat() {
                   }
               <input type="text" onChange={(e: any) => setShadowText(e.target.value)} value={shadowText} className='bg-black px-3 py-2 text-white focus:border-b-2  w-10/12 focus:outline-none' placeholder='Type here...'/>
               {
-                shadowText ? <button onClick={handleSubmitText} className='mx-5 '><BsFillSendFill className='text-2xl text-gray-500' /></button>  : 
-                <div className='mx-5 flex gap-5'>
-                    <span className='hidden'>
-                      <AudioRecorder 
-                        // onRecordingComplete={(blob) => addAudioElement(blob)}
-                        recorderControls={recorderControls}
-                        showVisualizer={true}
-                      />
-                    </span>
-                  {/* Record */}
-                  {/* <Popover>
-                    <PopoverTrigger><HiMicrophone  className='text-2xl text-gray-500' /></PopoverTrigger>
-                    <PopoverContent className='relative'>
-                        {
-                          recorderControls.isRecording ? 
-                          // Pause, Play, Stop, Delete
-                          <div className='mx-auto flex gap-5 relative'> 
-                            <button onClick={recorderControls.stopRecording}  className='py-2 rounded-md text-2xl text-red-500 animate-pulse'><FaStop /></button> 
-                            {
-                              recorderControls.isPaused ? 
-                              <button onClick={recorderControls.togglePauseResume}  className='py-2 rounded-md text-2xl text-white'>
-                                <FaPlay />
-                              </button> : 
-                              <button onClick={recorderControls.togglePauseResume}  className='py-2 rounded-md text-2xl text-white'>
-                                <FaPause />
-                              </button>
-                            }
-                            <button onClick={recorderControls.stopRecording}  className='py-2 rounded-md text-2xl text-white'><MdDelete /></button>
-
-                            <div className='text-white absolute right-5 bottom-2'>{recorderControls.recordingTime}secs</div>
-                          </div>  : 
-
-                          // Start recording
-                          <div className='mx-auto'> 
-                            <button onClick={recorderControls.startRecording} className=' text-white text-sm'>Start recording</button> 
-                          </div>
-                        }                       
-                    </PopoverContent>
-                  </Popover> */}
-
-                  {/* Upload  */}
-                  {/* <Popover>
-                    <PopoverTrigger> <LuGalleryVerticalEnd className='text-2xl text-gray-500'/> </PopoverTrigger>
-                    <PopoverContent className='text-white flex flex-col justify-center'>
-                          <input type="file" onChange={onFileChange} className='text-sm' />
-                          <textarea value={imageCaption} onChange={e => setImageCaption(e.target.value)} placeholder='Enter Caption here if needed.' className='py-2 text-black text-sm placeholder:text-sm px-2 mt-2' />
-                          {imageCaption ? <button onClick={handleImageCaption} className='bg-gray-600 px-4 rounded-xl py-2 text-sm mt-3 w-fit'>Send</button> : <button onClick={handleImage} className='bg-gray-600 px-4 rounded-xl py-2 text-sm mt-3 w-fit'>Send</button>}
-                    </PopoverContent>
-                  </Popover> */}
-                </div>
+                shadowText && <button onClick={handleSubmitText} className='mx-5 '><BsFillSendFill className='text-2xl text-gray-500' /></button> 
               }
               
             </form>

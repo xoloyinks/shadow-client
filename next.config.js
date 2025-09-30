@@ -15,7 +15,7 @@ const nextConfig = {
     },
     reactStrictMode: false,
     images: {
-        domains: ['localhost']
+        domains: ['localhost', 'https://shadow-server-b7v0.onrender.com/images']
     }
 }
 module.exports = nextConfig
