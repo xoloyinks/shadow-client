@@ -1,17 +1,20 @@
 "use client"
-import Image from 'next/image'
 import Link from 'next/link';
-import { useEffect, useState } from 'react'
-import { io } from 'socket.io-client'
-import { useToast } from "@/components/ui/use-toast"
-import { Button } from "@/components/ui/button"
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation';
 
-let socket: any;
+
 export default function Home() {
+  const router = useRouter()
 
   useEffect(() => {
     localStorage.setItem('shadowId', '');
   }, [])
+
+  const handlePublic = () => {
+    localStorage.setItem('shadowId', 'general');
+    router.push('/chat/general');
+  }
 
   return (
     <section className='w-screen text-white h-screen bg-black flex flex-col items-center justify-center'>
@@ -19,6 +22,7 @@ export default function Home() {
       <div className='flex flex-col gap-2'>
           <Link className='py-2 px-5 border-2 text-center' href='/create'>Create Shadow</Link>
           <Link href='/join' className='py-2 px-5 border-2 text-center'>Join Shadow</Link>
+          <button onClick={handlePublic} className='py-2 px-5 border-2 text-center'>Join Public Shadow</button>
       </div>
     </section>
   )

@@ -39,6 +39,7 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
       setTranslateX(move);
     },
     onSwiped: (eventData) => {
+      console.log(eventData)
       if(eventData.deltaX > 50){
         setSelectedChat(datum);
       }
@@ -152,7 +153,7 @@ export default function Chat() {
   const socketInitailization = () => {
     const id: any = localStorage.getItem('shadowId');
     setRoomId(id);
-    if(auth){
+    if(auth || id === 'general'){
       socket.emit('roomId', id);
 
       socket.on('joined', (data: any) => {
@@ -187,32 +188,6 @@ export default function Chat() {
       setShadowText('');
   }
 
-  const onFileChange = (e: any) => {
-      setFile(e.target.files[0]);
-  }
-
-  const handleImage = async(e: any) => {
-      e.preventDefault();
-      const time = new Date();
-      const hour = time.getHours();
-      const min = time.getMinutes();
-      const currentTime = hour + ":" + min;
-      const id: any = localStorage.getItem('shadowId');
-      const user: any = localStorage.getItem('uniqueUser');
-      const formData = new FormData();
-      formData.append('file', file);
-      const upload = axios.post('https://shadow-server-b7v0.onrender.com/uploadedImage', formData, {
-        headers: {
-          "Content-Type": 'multipart/form-data'
-        }
-      });
-        const messageType = "image";
-        const file_name: any = await upload.then(res => res.data);
-        socket.emit('image', {message: file_name, rooms: id, user: user, time: currentTime, messageType: messageType});
-  } 
-
-  
-
   // console.log(messageData)
 
   return (
@@ -240,7 +215,7 @@ export default function Chat() {
                     <button onClick={() => setSelectedChat(null)} className='w-fit ml-auto text-sm text-gray-700 font-semibold absolute top-2 right-2'><FaTimes /></button>
                   </div>
                 </div>
-              }
+        }
         
         <div className=' w-full bg-black px-3 py-3 relative'>
               
