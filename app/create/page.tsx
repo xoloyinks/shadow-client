@@ -56,8 +56,8 @@ export default function Create() {
             <Link className='absolute top-5 ' href='/' >Go back Home</Link>
             <h1 className='mb-5 text-xl'>Create Shadow ID</h1>
             <form action="" className=' w-8/12 flex flex-col gap-3' onSubmit={handleShadowId}>
-                <input id='createInput' type="text" className='bg-transparent border-b-2 border-white py-2 tracking-wide w-full focus:outline-none text-center' value={shadowId} onChange={(e: any) => setShadowId(e.target.value)}/>
-                <button  className='text-black bg-white px-5 w-32 flex justify-center items-center py-2 mx-auto'>{loading ? <FaSpinner className='animate-spin' /> : "Next"}</button>
+                <input id='createInput' required type="text" className='bg-transparent border-b-2 border-white py-2 tracking-wide w-full focus:outline-none text-center' value={shadowId} onChange={(e: any) => setShadowId(e.target.value)}/>
+                <button disabled={loading}  className='text-black bg-white px-5 w-32 flex justify-center items-center py-2 mx-auto'>{loading ? <FaSpinner className='animate-spin' /> : "Next"}</button>
             </form>
         </section>
     </>
