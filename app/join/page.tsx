@@ -45,7 +45,7 @@ export default function Join() {
     }
   }
   return (
-    <section className='w-screen h-screen bg-black flex flex-col text-white items-center justify-center'>
+    <section className='sm:w-[30vw] mx-auto h-screen bg-black flex flex-col text-white items-center justify-center'>
         <Link className='absolute top-5 ' href='/' >Go Back Home</Link>
         <h1 className='mb-5 text-xl'>Enter Shadow ID</h1>
         <form action="" onSubmit={handleSubmit} className=' w-8/12 flex flex-col gap-3'>

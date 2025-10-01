@@ -6,11 +6,9 @@ import { FaTimes } from "react-icons/fa";
 import { BsFillSendFill } from "react-icons/bs";
 import { UserData } from '@/app/context';
 import { BsEmojiSmile } from "react-icons/bs";
-import axios from 'axios';
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useSwipeable } from 'react-swipeable';
-
 
 const socket = io('wss://shadow-server-b7v0.onrender.com');
   // const socket = io('ws://localhost:8000/');
@@ -41,7 +39,7 @@ type Reactions = {
   shadowId: string
 }
 
-export function useLongPress(
+function useLongPress(
   callback: () => void,
   ms: number = 500 // default: 0.5s
 ) {
