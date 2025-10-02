@@ -10,8 +10,8 @@ import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useSwipeable } from 'react-swipeable';
 
-// const socket = io('wss://shadow-server-b7v0.onrender.com');
-  const socket = io('ws://localhost:8000/');
+const socket = io('wss://shadow-server-b7v0.onrender.com');
+  // const socket = io('ws://localhost:8000/');
 
 type Chat = {
   message: string,
