@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client'
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaTrash } from "react-icons/fa";
 import { BsFillSendFill } from "react-icons/bs";
 import { UserData } from '@/app/context';
 import { BsEmojiSmile } from "react-icons/bs";
@@ -10,8 +10,8 @@ import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useSwipeable } from 'react-swipeable';
 
-const socket = io('wss://shadow-server-b7v0.onrender.com');
-  // const socket = io('ws://localhost:8000/');
+// const socket = io('wss://shadow-server-b7v0.onrender.com');
+  const socket = io('ws://localhost:8000/');
 
 type Chat = {
   message: string,
@@ -77,6 +77,7 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
   const [translateX, setTranslateX] = useState(0);
   const [quickReactionMenu, setQuickReactionMenu] = useState<string | undefined>(undefined);
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
 
   const handleReaction = (emojiId: string) => {
     // e.preventDefault();
@@ -101,6 +102,9 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
   const longPressHandlers = useLongPress(() => {
     setQuickReactionMenu(datum._id);
     setShowEmojis(true);
+    if(datum.sender){
+      setShowDelete(true);
+    }
   }, 600); // 600ms hold
 
   const handlers = useSwipeable({
@@ -133,6 +137,10 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
     const emoji = (data as any).emojis?.[emojiId];
     if (!emoji) return '';
     return emoji.skins ? emoji.skins[0].native : emoji.native;
+  }
+
+  const handleDelete = () => {
+    socket.emit('deleteChat', {chatId: datum._id, rooms: datum.shadowId});
   }
 
 
@@ -169,10 +177,17 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
               ));
             })}
         </div>
+
+        {
+          showDelete && datum.sender && 
+            <button onClick={handleDelete} className='absolute top-2 -left-[100px] z-50 backdrop-blur-xl p-2 rounded flex items-center gap-1 text-sm'>
+              <FaTrash className='text-red-500'/> Delete Chat
+            </button>
+        }
         {
           // Quick Reaction Menu emojis (the Picker can be used here too if you want more emojis)
           quickReactionMenu === datum._id && showEmojis && (
-            <div className={`absolute bottom-2 w-fit backdrop-blur-xl rounded-xl p-3 pr-10 flex flex-col gap-3 z-50 ${datum.side ? 'hidden' : 'left-0'}`}>
+            <div className={`absolute -bottom-[500px] w-fit backdrop-blur-xl rounded-xl p-3 pr-10 flex flex-col gap-3 z-50 ${datum.side ? 'hidden' : 'left-0'}`}>
               <span className='text-gray-500 text-xs'>Quick Reactions</span>
               <Picker 
                   reactionsDefaultOpen={true} 

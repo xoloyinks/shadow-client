@@ -13,10 +13,7 @@ export default function Home() {
   }, [])
 
   const handlePublic = () => {
-    const user = "shadow" + Math.floor(Math.random() * 100);
-    localStorage.setItem('uniqueUser', user);
-    localStorage.setItem('shadowId', 'general');
-    router.push('/chat/general');
+    router.push('/general');
   }
 
   return (
