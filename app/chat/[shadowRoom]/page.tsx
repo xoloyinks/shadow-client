@@ -10,8 +10,8 @@ import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useSwipeable } from 'react-swipeable';
 
-const socket = io('wss://shadow-server-b7v0.onrender.com');
-  // const socket = io('ws://localhost:8000/');
+// const socket = io('wss://shadow-server-b7v0.onrender.com');
+  const socket = io('ws://localhost:8000/');
 
 type Chat = {
   message: string,
@@ -31,10 +31,16 @@ type Chat = {
 type SwipeableChatsProps = {
   chat: Chat[];
   setSelectedChat: (chat: Chat) => void;
+  reactions: Reactions[];
 };
 
+type Reaction = {
+  reaction: string,
+  reactor: string
+}
+
 type Reactions = {
-  reactions: string[],
+  reactions: Reaction[],
   chatId: string,
   shadowId: string
 }
@@ -67,20 +73,26 @@ function useLongPress(
 
 
 
-const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) => void }> = ({ datum, setSelectedChat }) => {
+const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) => void, reactions: Reactions[]}> = ({ datum, setSelectedChat, reactions }) => {
   const [translateX, setTranslateX] = useState(0);
   const [quickReactionMenu, setQuickReactionMenu] = useState<string | undefined>(undefined);
-  const [allReactions, setReactions] = useState<Reactions[]>([]);
   const [showEmojis, setShowEmojis] = useState(false);
-
-  socket.on('prevReactions', (data: Reactions[]) => {
-        setReactions(data);
-    });
 
   const handleReaction = (emojiId: string) => {
     // e.preventDefault();
-    socket.emit('reaction', { reaction: emojiId, chatId: datum._id, rooms: datum.shadowId });
-    console.log({ reaction: emojiId, chatId: datum._id, rooms: datum.shadowId })
+    const reactionObj = {
+      reaction: {
+        reaction: emojiId, 
+        reactor: localStorage.getItem('uniqueUser')
+      },
+      chatId: datum._id,
+      rooms: datum.shadowId,
+    };
+    
+
+    socket.emit('reaction', reactionObj);
+
+    console.log(reactionObj);
     // Here you can handle the reaction logic, e.g., send to server or update state
 
     setQuickReactionMenu(undefined); // Close the menu after selecting a reaction
@@ -138,13 +150,13 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
         <span className='tracking-wide sm:text-xs text-sm'>{datum.message}</span>
         <span className='text-sm sm:text-xs font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
         <div className='absolute max-w-[150px] overflow-x-scroll -bottom-4 backdrop-blur-xl rounded-full gap-1 left-0 flex z-50 '>
-          {allReactions
+          {reactions
             .filter(reaction => reaction.chatId === datum._id)
             .flatMap(reaction => {
               // Count occurrences of each emojiId
               const counts: { [emojiId: string]: number } = {};
               reaction.reactions.forEach(emojiId => {
-                counts[emojiId] = (counts[emojiId] || 0) + 1;
+                counts[emojiId.reaction] = (counts[emojiId.reaction] || 0) + 1;
               });
               // Render each unique emojiId with its count
               return Object.entries(counts).map(([emojiId, count], idx) => (
@@ -195,13 +207,13 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
         <span className='tracking-wide text-sm'>{datum.message}</span>
         <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
         <div className='absolute max-w-[150px] overflow-x-scroll -bottom-4 rounded-full backdrop-blur-xl gap-1 left-0 flex z-50 '>
-          {allReactions
+          {reactions
             .filter(reaction => reaction.chatId === datum._id)
             .flatMap(reaction => {
               // Count occurrences of each emojiId
               const counts: { [emojiId: string]: number } = {};
               reaction.reactions.forEach(emojiId => {
-                counts[emojiId] = (counts[emojiId] || 0) + 1;
+                counts[emojiId.reaction] = (counts[emojiId.reaction] || 0) + 1;
               });
               // Render each unique emojiId with its count
               return Object.entries(counts).map(([emojiId, count], idx) => (
@@ -242,10 +254,10 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
   return null;
 };
 
-const SwipeableChats: React.FC<SwipeableChatsProps> = ({ chat, setSelectedChat }) => (
+const SwipeableChats: React.FC<SwipeableChatsProps> = ({ chat, setSelectedChat, reactions }) => (
   <>
     {chat.map((datum: Chat, key: number) => (
-      <SwipeableChatItem key={key} datum={datum} setSelectedChat={setSelectedChat} />
+      <SwipeableChatItem key={key} datum={datum} setSelectedChat={setSelectedChat} reactions={reactions} />
     ))}
   </>
 );
@@ -328,7 +340,7 @@ export default function Chat() {
         }else{
           side = true;
         }
-        setMessageData(prevData => [...prevData, {message: data.message, sender: data.sender, timestamp: data.timestamp, side: side, messageType: data.messageType, reply: data.reply }]);;
+        setMessageData(prevData => [...prevData, {message: data.message, sender: data.sender, timestamp: data.timestamp, side: side, messageType: data.messageType, reply: data.reply, _id: data._id, shadowId: data.shadowId }]);;
     });
 
    
@@ -339,6 +351,8 @@ export default function Chat() {
       route.push('/join');
     }
   }
+
+  // console.log(reactions)
 
   const handleSubmitText = (e: any) => {
       e.preventDefault();
@@ -368,7 +382,7 @@ export default function Chat() {
             <p className='text-gray-600 text-center'>{notification}</p>
            <div className='py-3'>
               {
-                messageData.length > 0 && <SwipeableChats chat={messageData} setSelectedChat={setSelectedChat} /> 
+                messageData.length > 0 && <SwipeableChats chat={messageData} reactions={reactions} setSelectedChat={setSelectedChat} /> 
               }
            </div>
         </div>
