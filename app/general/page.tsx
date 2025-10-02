@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { FaSpinner } from 'react-icons/fa';
 
 
-export default function page() {
+export default function Page() {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const route = useRouter();
