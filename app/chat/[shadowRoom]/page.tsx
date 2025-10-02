@@ -161,7 +161,7 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
               // Render each unique emojiId with its count
               return Object.entries(counts).map(([emojiId, count], idx) => (
                 <div className='px-1 py-1 flex items-center rounded-full bg-gray-900' key={idx}>
-                  <span className='text-xs rounded-full'>{getNativeEmoji(emojiId)}</span>
+                  <span className='text-sm rounded-full'>{getNativeEmoji(emojiId)}</span>
                   {count > 1 && (
                     <span className='ml-1 text-[10px] text-gray-400 font-bold'>{count}</span>
                   )}
@@ -202,10 +202,10 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
         <span className='text-sm font-semibold text-gray-500'>{datum.side ? "Me" : datum.sender}</span>
         <div className='pl-2 border-l-2 border-gray-600'>
           <span className='text-sm text-gray-500'>Replying to {datum.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : datum.reply?.sender}</span>
-          <p className='text-sm italic text-gray-400'>{datum.reply?.message}</p>
+          <p className='sm:text-xs text-sm italic text-gray-400'>{datum.reply?.message}</p>
         </div>
-        <span className='tracking-wide text-sm'>{datum.message}</span>
-        <span className='mr-2 text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
+        <span className='tracking-wide sm:text-xs text-sm'>{datum.message}</span>
+        <span className='mr-2 sm:text-[10px] text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
         <div className='absolute max-w-[150px] overflow-x-scroll -bottom-4 rounded-full backdrop-blur-xl gap-1 left-0 flex z-50 '>
           {reactions
             .filter(reaction => reaction.chatId === datum._id)
@@ -218,7 +218,7 @@ const SwipeableChatItem: React.FC<{ datum: Chat, setSelectedChat: (chat: Chat) =
               // Render each unique emojiId with its count
               return Object.entries(counts).map(([emojiId, count], idx) => (
                 <div className='px-1 py-1 flex items-center rounded-full bg-gray-900' key={idx}>
-                  <span className='text-xs rounded-full'>{getNativeEmoji(emojiId)}</span>
+                  <span className='text-sm rounded-full'>{getNativeEmoji(emojiId)}</span>
                   {count > 1 && (
                     <span className='ml-1 text-[10px] text-gray-400 font-bold'>{count}</span>
                   )}
