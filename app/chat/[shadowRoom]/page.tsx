@@ -383,7 +383,18 @@ export default function Chat() {
       setShadowText('');
   }
 
-  // console.log(messageData)
+  const handleTextChange = (e: any) => {
+    setShadowText(e.target.value);
+    // emit typing event
+    socket.emit('typing', {rooms: roomId});
+  }
+
+  useEffect(() => {
+    socket.on('typing', (data: any) => {
+      setNotification(data);
+    });
+  }, [roomId]);
+
 
   return (
     <section className='bg-black sm:w-[30vw] h- mx-auto relative'>
@@ -394,7 +405,7 @@ export default function Chat() {
           </div>
         </div>
         <div ref={chatScroll} className={`pt-24 h-[91dvh] ${selectedChat ? 'pb-24' : ''} overflow-y-scroll`}>
-            <p className='text-gray-600 text-center'>{notification}</p>
+            <p className='text-gray-600 text-center'><i>{notification}</i></p>
            <div className='py-3'>
               {
                 messageData.length > 0 && <SwipeableChats chat={messageData} reactions={reactions} setSelectedChat={setSelectedChat} /> 
@@ -413,7 +424,6 @@ export default function Chat() {
         }
         
         <div className=' w-full bg-black px-3 py-3 relative'>
-              
             <form
             className='flex items-center justify-between'>
               <button onClick={(e:any ) => { e.preventDefault(); setShowEmojis(!showEmojis)}}>
@@ -433,7 +443,7 @@ export default function Chat() {
                   </div>
                   )
                   }
-              <input type="text" onChange={(e: any) => setShadowText(e.target.value)} value={shadowText} className='bg-black px-3 py-2 text-white focus:border-b-2  w-10/12 focus:outline-none' placeholder='Type here...'/>
+              <input type="text" onChange={(e: any) => handleTextChange(e)} value={shadowText} className='bg-black px-3 py-2 text-white focus:border-b-2  w-10/12 focus:outline-none' placeholder='Type here...'/>
               {
                 shadowText && <button onClick={handleSubmitText} className='mx-5 '><BsFillSendFill className='text-2xl text-gray-500' /></button> 
               }
