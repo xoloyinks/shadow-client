@@ -10,6 +10,9 @@ import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useSwipeable } from 'react-swipeable';
 import { AnimatePresence, motion } from "framer-motion";
+import { RxExit } from "react-icons/rx";
+import { GiSpiderMask } from "react-icons/gi";
+
 
 const socket = io('wss://shadow-server-b7v0.onrender.com');
 
@@ -350,12 +353,22 @@ export default function Chat() {
     setShowQuickReactions(false);
   }
 
+  const handleLeave = () => {
+    localStorage.setItem('shadowId', '');
+    route.push('/')
+  }
+
   return (
     <section  
       style={{ backgroundImage: 'url("/images/w3.jpg")', backgroundPosition: 'no-repeat', backgroundSize: 'cover' }}
     className='bg-black sm:w-[30vw] h- mx-auto relative'>
         <div className='absolute top-0 w-full text-center z-50 bg-black'>
-          <h1 className='py-3 text-center w-full text-gray-600 font-bold text-xl'>SHADOW</h1>
+          <p className='py-3 px-2 text-center w-full text-gray-600 font-bold text-xl flex justify-between'>
+              <h1 className='py-3 text-center text-gray-600 font-bold text-xl'>Shadow</h1>
+              <button className='text-red-700 font-extrabold' onClick={handleLeave}><RxExit /></button>
+          </p>
+          <div className='text-gray-800 -translate-y-5 text-2xl w-full flex justify-center'><GiSpiderMask /></div>
+
           <div className='text-gray-600'>
             {active}
           </div>
