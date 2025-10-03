@@ -15,6 +15,7 @@ import { GiSpiderMask } from "react-icons/gi";
 
 
 const socket = io('wss://shadow-server-b7v0.onrender.com');
+// const socket = io('ws://localhost:8000');
 
 type Chat = {
   message: string,
@@ -83,9 +84,14 @@ const SwipeableChatItem: React.FC<{
   setReactionTarget: (id: string | null) => void,
   setShowQuickReactions: (b: boolean) => void
 }> = ({ datum, setSelectedChat, reactions, setReactionTarget, setShowQuickReactions }) => {
+  const me: boolean = datum.sender === localStorage.getItem('uniqueUser');
   const [translateX, setTranslateX] = useState(0);
   const [showDelete, setShowDelete] = useState(false);
   const [replySnap, setReplySnap] = useState(false);
+  const message = {
+    ...datum,
+    side: me
+  }
 
   const handlers = useSwipeable({
     onSwiping: (eventData) => {
@@ -99,7 +105,7 @@ const SwipeableChatItem: React.FC<{
         // trigger reply
         setReplySnap(true); 
         setTimeout(() => {
-          setSelectedChat(datum);
+          setSelectedChat(message);
           setReplySnap(false);
           setTranslateX(0);
         }, 200); // snap animation duration
@@ -111,13 +117,12 @@ const SwipeableChatItem: React.FC<{
     trackMouse: true,
   });
 
-  const me: boolean = datum.sender === localStorage.getItem('uniqueUser');
 
   const longPressHandlers = useLongPress(() => {
     if (me) {
       setShowDelete(true);
     } else {
-      setReactionTarget(datum._id || null);
+      setReactionTarget(message._id || null);
       setShowQuickReactions(true);
     }
   }, 600);
@@ -129,12 +134,14 @@ const SwipeableChatItem: React.FC<{
     return emoji.skins ? emoji.skins[0].native : emoji.native;
   };
 
-  const handleDelete = () => {
-    socket.emit('deleteChat', { chatId: datum._id, rooms: datum.shadowId });
+  const handleDelete = (e: React.FormEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    socket.emit('deleteChat', { chatId: message._id, rooms: message.shadowId });
+
   };
 
   const reactionsForMessage = reactions
-    .filter(r => r.chatId === datum._id)
+    .filter(r => r.chatId === message._id)
     .flatMap(r => {
       const counts: { [emojiId: string]: number } = {};
       r.reactions.forEach(emojiId => {
@@ -163,25 +170,25 @@ const SwipeableChatItem: React.FC<{
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       exit={{ opacity: 0, y: 20 }}
       className={`text-gray-400 relative mb-5 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex ${
-        datum.messageType==="text" ? "flex-col-reverse" : "flex-col"
-      } gap-2 rounded-xl ${datum.side ? 'rounded-br-none ml-auto' : 'mr-auto rounded-bl-none'}`}
+        message.messageType==="text" ? "flex-col-reverse" : "flex-col"
+      } gap-2 rounded-xl ${message.side ? 'rounded-br-none ml-auto' : 'mr-auto rounded-bl-none'}`}
     >
 
       <span className='text-sm sm:text-xs font-semibold text-gray-500'>
-        {datum.side ? "Me" : datum.sender}
+        {message.side ? "Me" : message.sender}
       </span>
 
-      { datum.messageType==="replyText" && (
+      { message.messageType==="replyText" && (
         <div className='pl-2 border-l-2 border-gray-600'>
           <span className='text-sm text-gray-500'>
-            Replying to {datum.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : datum.reply?.sender}
+            Replying to {message.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : message.reply?.sender}
           </span>
-          <p className='sm:text-xs text-sm italic text-gray-400'>{datum.reply?.message}</p>
+          <p className='sm:text-xs text-sm italic text-gray-400'>{message.reply?.message}</p>
         </div>
       )}
 
-      <span className='tracking-wide sm:text-xs text-sm'>{datum.message}</span>
-      <span className='mr-2 sm:text-[10px] text-[12px] font-semibold bottom-0 text-right'>{datum.timestamp}</span>
+      <span className='tracking-wide sm:text-xs text-sm'>{message.message}</span>
+      <span className='mr-2 sm:text-[10px] text-[12px] font-semibold bottom-0 text-right'>{message.timestamp}</span>
 
       {/* Reactions */}
       <div className='absolute max-w-[150px] overflow-x-scroll -bottom-4 backdrop-blur-xl rounded-full gap-1 left-0 flex z-20'>
@@ -197,7 +204,7 @@ const SwipeableChatItem: React.FC<{
           className='absolute top-2 -left-[120px] z-50 backdrop-blur-xl p-2 rounded flex items-center gap-1 text-sm'
         >
           <button onClick={() => setShowDelete(false)} className='text-sm text-red-500 hover:text-red-600 bg-red-400 rounded-full p-1'><FaTimes /></button>
-          <button onClick={handleDelete} className='flex items-center gap-1 '><FaTrash className='text-red-500'/> Delete</button> 
+          <button onClick={(e: any) => handleDelete(e)} className='flex items-center gap-1 '><FaTrash className='text-red-500'/> Delete</button> 
         </motion.div>
       }
     </motion.div>
@@ -229,8 +236,6 @@ export default function Chat() {
   const [auth, setAuth] = useContext(UserData);
   const route = useRouter();
   const chatScroll = useRef<any>(null);
-  const [file, setFile] = useState<any>();
-  const [prevMessages, setPrevMessages] = useState<Chat[]>([]);
   const [showEmojis, setShowEmojis] = useState(false); // input picker
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   const [reactions, setReactions] = useState<Reactions[]>([]);
@@ -281,7 +286,6 @@ export default function Chat() {
       });
 
       socket.on('prevMessages', (data:any) => {
-        setPrevMessages(data);
         setMessageData(data);
         chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
       })
@@ -355,6 +359,7 @@ export default function Chat() {
 
   const handleLeave = () => {
     localStorage.setItem('shadowId', '');
+    // socket.disconnect()
     route.push('/')
   }
 
@@ -375,10 +380,10 @@ export default function Chat() {
           <p className='text-gray-600 text-center w-full'><i>{notification}</i></p>
         </div>
         <div ref={chatScroll} className={`pt-24 h-[91dvh] ${selectedChat ? 'pb-24' : ''} overflow-y-scroll bg-black/80`}>
-            
            <div className='py-3'>
               {
-                messageData.length > 0 && <SwipeableChats chat={messageData} reactions={reactions} setSelectedChat={setSelectedChat} setReactionTarget={setReactionTarget} setShowQuickReactions={setShowQuickReactions} /> 
+                messageData.length > 0 ? <SwipeableChats chat={messageData} reactions={reactions} setSelectedChat={setSelectedChat} setReactionTarget={setReactionTarget} setShowQuickReactions={setShowQuickReactions} /> : <p className='text-gray-600 w-full h-full flex justify-center items-center
+                '>No echoes in the shadows yet...</p>
               }
            </div>
         </div>
