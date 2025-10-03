@@ -351,7 +351,9 @@ export default function Chat() {
   }
 
   return (
-    <section className='bg-black sm:w-[30vw] h- mx-auto relative'>
+    <section  
+      style={{ backgroundImage: 'url("/images/w3.jpg")', backgroundPosition: 'no-repeat', backgroundSize: 'cover' }}
+    className='bg-black sm:w-[30vw] h- mx-auto relative'>
         <div className='absolute top-0 w-full text-center z-50 bg-black'>
           <h1 className='py-3 text-center w-full text-gray-600 font-bold text-xl'>SHADOW</h1>
           <div className='text-gray-600'>
@@ -359,7 +361,7 @@ export default function Chat() {
           </div>
           <p className='text-gray-600 text-center w-full'><i>{notification}</i></p>
         </div>
-        <div ref={chatScroll} className={`pt-24 h-[91dvh] ${selectedChat ? 'pb-24' : ''} overflow-y-scroll`}>
+        <div ref={chatScroll} className={`pt-24 h-[91dvh] ${selectedChat ? 'pb-24' : ''} overflow-y-scroll bg-black/80`}>
             
            <div className='py-3'>
               {
