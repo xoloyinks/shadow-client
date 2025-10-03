@@ -21,7 +21,7 @@ export default function Home() {
       <h1 className='text-xl mb-5'>SHADOW</h1>
       <div className='flex flex-col gap-2'>
           <Link className='py-2 px-5 border-2 text-center' href='/create'>Create Shadow</Link>
-          <Link href='/join' className='py-2 px-5 border-2 text-center'>Join Shadow</Link>
+          <Link href='/join' className='py-2 px-5 border-2 text-center'>Join Private Shadow</Link>
           <button onClick={handlePublic} className='py-2 px-5 border-2 text-center'>Join Public Shadow</button>
       </div>
     </section>
