@@ -12,6 +12,7 @@ import { useSwipeable } from 'react-swipeable';
 import { AnimatePresence, motion } from "framer-motion";
 import { RxExit } from "react-icons/rx";
 import { GiSpiderMask } from "react-icons/gi";
+import { MdDarkMode, MdOutlineLightMode } from "react-icons/md";
 
 
 const socket = io('wss://shadow-server-b7v0.onrender.com');
@@ -191,7 +192,7 @@ const SwipeableChatItem: React.FC<{
       <span className='mr-2 sm:text-[10px] text-[12px] font-semibold bottom-0 text-right'>{message.timestamp}</span>
 
       {/* Reactions */}
-      <div className='absolute max-w-[150px] overflow-x-scroll -bottom-4 backdrop-blur-xl rounded-full gap-1 left-0 flex z-20'>
+      <div className='absolute max-w-[150px] overflow-x-scroll -bottom-9 rounded-full gap-1 left-0 flex z-20'>
         {reactionsForMessage}
       </div>
 
@@ -236,20 +237,33 @@ export default function Chat() {
   const [auth, setAuth] = useContext(UserData);
   const route = useRouter();
   const chatScroll = useRef<any>(null);
-  const [showEmojis, setShowEmojis] = useState(false); // input picker
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
+  const [showEmojis, setShowEmojis] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [reactions, setReactions] = useState<Reactions[]>([]);
-
-  // New states for global quick reactions
   const [reactionTarget, setReactionTarget] = useState<string | null>(null);
   const [showQuickReactions, setShowQuickReactions] = useState(false);
+
+  // 🌞 THEME STATE
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    if (savedTheme) setTheme(savedTheme);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   useEffect(() => {
     socketInitailization();
     const audio = new Audio('/sounds/mixkit-correct-answer-tone-2870.mp3');
     audio.play();
 
-    // Cleanup on unmount
     return () => {
       socket.off('chat');
       socket.off('joined');
@@ -260,13 +274,11 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
-    setTimeout(() => {
-      setNotification('')
-    }, 5000) 
+    setTimeout(() => setNotification(''), 5000);
   }, [notification]);
 
   useEffect(() => {
-     if (chatScroll.current) {
+    if (chatScroll.current) {
       chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
     }
   }, [messageData]);
@@ -274,80 +286,68 @@ export default function Chat() {
   const socketInitailization = () => {
     const id: any = localStorage.getItem('shadowId');
     setRoomId(id);
-    if(auth || id === 'general'){
+    if (auth || id === 'general') {
       socket.emit('roomId', id);
 
-      socket.on('joined', (data: any) => {
-        setNotification(data);
-      });
-
-      socket.on('population', (data: any) => {
-        setActive(data);
-      });
-
-      socket.on('prevMessages', (data:any) => {
+      socket.on('joined', (data: any) => setNotification(data));
+      socket.on('population', (data: any) => setActive(data));
+      socket.on('prevMessages', (data: any) => {
         setMessageData(data);
         chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
-      })
-
-      socket.on('prevReactions', (data:any) => {
-        setReactions(data);
       });
+      socket.on('prevReactions', (data: any) => setReactions(data));
 
       const audio = new Audio('/sounds/mixkit-gaming-lock-2848.wav');
       socket.on('chat', (data: Chat) => {
         const id = localStorage.getItem('uniqueUser');
-        var side: boolean;
-        if(data.sender !== id){
-          audio.play();
-          side = false;
-        }else{
-          side = true;
-        }
-        setMessageData(prevData => [...prevData, {message: data.message, sender: data.sender, timestamp: data.timestamp, side: side, messageType: data.messageType, reply: data.reply, _id: data._id, shadowId: data.shadowId }]);;
-    });
-
-    chatScroll.current.scrollTop = chatScroll.current.scrollHeight;
-
-    }else{
+        const side = data.sender === id ? true : false;
+        if (!side) audio.play();
+        setMessageData((prev) => [...prev, { ...data, side }]);
+      });
+    } else {
       route.push('/join');
     }
-  }
+  };
 
   const handleSubmitText = (e: any) => {
-      e.preventDefault();
-      const messageType = selectedChat ? 'replyText' : 'text' ;
-      const time = new Date();
-      const hour = time.getHours();
-      const min = time.getMinutes();
-      const currentTime = hour + ":" + min;
-      const id: any = localStorage.getItem('shadowId');
-      const user: any = localStorage.getItem('uniqueUser');
-      socket.emit('text', {message: shadowText, rooms: id, user: user, time: currentTime, messageType: messageType, reply: selectedChat ? { sender: selectedChat.sender, message: selectedChat.message } : null });
-      setSelectedChat(null);
-      setShadowText('');
-  }
+    e.preventDefault();
+    const messageType = selectedChat ? 'replyText' : 'text';
+    const time = new Date();
+    const hour = time.getHours();
+    const min = time.getMinutes();
+    const currentTime = hour + ':' + min;
+    const id: any = localStorage.getItem('shadowId');
+    const user: any = localStorage.getItem('uniqueUser');
+    socket.emit('text', {
+      message: shadowText,
+      rooms: id,
+      user,
+      time: currentTime,
+      messageType,
+      reply: selectedChat
+        ? { sender: selectedChat.sender, message: selectedChat.message }
+        : null,
+    });
+    setSelectedChat(null);
+    setShadowText('');
+  };
 
   const handleTextChange = (e: any) => {
     setShadowText(e.target.value);
-    // emit typing event
-    socket.emit('typing', {rooms: roomId});
-  }
+    socket.emit('typing', { rooms: roomId });
+  };
 
   useEffect(() => {
-    socket.on('typing', (data: any) => {
-      setNotification(data);
-    });
+    socket.on('typing', (data: any) => setNotification(data));
   }, [roomId]);
 
-  // Global reaction handler (called by global picker)
   const handleGlobalReaction = (emoji: any) => {
     if (!reactionTarget) return;
-    const targetMessage = messageData.find(m => m._id === reactionTarget);
+    const targetMessage = messageData.find((m) => m._id === reactionTarget);
     const reactionObj = {
       reaction: {
-        reaction: emoji.id, 
-        reactor: localStorage.getItem('uniqueUser')
+        reaction: emoji.id,
+        reactor: localStorage.getItem('uniqueUser'),
       },
       chatId: reactionTarget,
       rooms: targetMessage?.shadowId || roomId,
@@ -355,94 +355,169 @@ export default function Chat() {
     socket.emit('reaction', reactionObj);
     setReactionTarget(null);
     setShowQuickReactions(false);
-  }
+  };
 
   const handleLeave = () => {
     localStorage.setItem('shadowId', '');
-    // socket.disconnect()
-    route.push('/')
-  }
+    route.push('/');
+  };
+
+  // 🌗 Theme classes
+  const bgColor =
+    theme === 'dark' ? 'bg-black text-gray-300' : 'bg-gray-100 text-gray-800';
+  const headerColor =
+    theme === 'dark' ? 'bg-black text-gray-600' : 'bg-white text-gray-700';
+  const bubbleColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200';
 
   return (
-    <section  
-      style={{ backgroundImage: 'url("/images/w3.jpg")', backgroundPosition: 'no-repeat', backgroundSize: 'cover' }}
-    className='bg-black sm:w-[30vw] h- mx-auto relative'>
-        <div className='absolute top-0 w-full text-center z-50 bg-black'>
-          <p className='py-3 px-2 text-center w-full text-gray-600 font-bold text-xl flex justify-between'>
-              <h1 className='py-3 text-center text-gray-600 font-bold text-xl'>Shadow</h1>
-              <button className='text-red-700 font-extrabold' onClick={handleLeave}><RxExit /></button>
-          </p>
-          <div className='text-gray-800 -translate-y-5 text-2xl w-full flex justify-center'><GiSpiderMask /></div>
-
-          <div className='text-gray-600'>
-            {active}
+    <section
+      style={{
+        backgroundImage:
+          theme === 'dark' ? 'url("/images/w3.jpg")' : 'url("/images/light-bg.jpg")',
+        backgroundPosition: 'no-repeat',
+        backgroundSize: 'cover',
+        transition: 'all 0.4s ease',
+      }}
+      className={` sm:w-[30vw] mx-auto relative transition-all duration-500`}
+    >
+      <div
+        className={`absolute top-0 w-full text-center z-50 ${headerColor} transition-all duration-500`}
+      >
+        <div className="py-3 px-4 text-center w-full font-bold text-xl flex justify-between items-center">
+          <h1 className="text-xl font-bold">Shadow</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="text-lg font-bold hover:opacity-80 transition"
+            >
+              {theme === 'dark' ? <MdOutlineLightMode /> : <MdDarkMode />}
+            </button>
+            <button className="text-red-700 font-extrabold" onClick={handleLeave}>
+              <RxExit />
+            </button>
           </div>
-          <p className='text-gray-600 text-center w-full'><i>{notification}</i></p>
         </div>
-        <div ref={chatScroll} className={`pt-24 h-[91dvh] ${selectedChat ? 'pb-24' : ''} overflow-y-scroll bg-black/80`}>
-           <div className='py-3'>
-              {
-                messageData.length > 0 ? <SwipeableChats chat={messageData} reactions={reactions} setSelectedChat={setSelectedChat} setReactionTarget={setReactionTarget} setShowQuickReactions={setShowQuickReactions} /> : <p className='text-gray-600 w-full h-full flex justify-center items-center
-                '>No echoes in the shadows yet...</p>
-              }
-           </div>
+        <div className="text-2xl w-full -translate-y-3 flex justify-center">
+          <GiSpiderMask />
         </div>
 
-        {/* Global Quick Reaction Picker (outside chat bubble, above everything) */}
-        { showQuickReactions && reactionTarget && (
-          <div className='fixed bottom-24 left-1/2 -translate-x-1/2 w-fit backdrop-blur-xl rounded-xl p-3 pr-10 flex flex-col gap-3 z-[9999]'>
-            <span className='text-gray-500 text-xs'>Quick Reactions</span>
-            <Picker 
-                reactionsDefaultOpen={true} 
-                perLine={5}
-                emojiSize={15}
-                onClickOutside={() => { setReactionTarget(null); setShowQuickReactions(false); }}
+        <div className="text-sm">{active}</div>
+        <p className="text-sm italic">{notification}</p>
+      </div>
+
+      <div
+        ref={chatScroll}
+        className={`pt-24 h-[91dvh] ${
+          selectedChat ? 'pb-24' : ''
+        } overflow-y-scroll ${bgColor}/20 transition-all duration-500`}
+      >
+        <div className="py-3">
+          {messageData.length > 0 ? (
+            <SwipeableChats
+              chat={messageData}
+              reactions={reactions}
+              setSelectedChat={setSelectedChat}
+              setReactionTarget={setReactionTarget}
+              setShowQuickReactions={setShowQuickReactions}
+            />
+          ) : (
+            <p className="w-full h-full flex justify-center items-center text-sm">
+              No echoes in the shadows yet...
+            </p>
+          )}
+        </div>
+      </div>
+
+      {showQuickReactions && reactionTarget && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-fit backdrop-blur-xl rounded-xl p-3 pr-10 flex flex-col gap-3 z-[9999]">
+          <span className="text-gray-500 text-xs">Quick Reactions</span>
+          <Picker
+            reactionsDefaultOpen={true}
+            perLine={5}
+            emojiSize={15}
+            onClickOutside={() => {
+              setReactionTarget(null);
+              setShowQuickReactions(false);
+            }}
+            data={data}
+            previewPosition={'none'}
+            onEmojiSelect={(emoji: any) => handleGlobalReaction(emoji)}
+          />
+          <button
+            onClick={() => {
+              setReactionTarget(null);
+              setShowQuickReactions(false);
+            }}
+            className="w-fit ml-auto text-sm font-semibold absolute top-2 right-2"
+          >
+            <FaTimes />
+          </button>
+        </div>
+      )}
+
+      {selectedChat && (
+        <div className="w-full z-50 absolute bottom-20 px-5">
+          <div
+            className={`w-fit ${bubbleColor} rounded-xl p-3 pr-10 flex flex-col gap-3 relative`}
+          >
+            <span className="text-xs">
+              Replying to {selectedChat.side ? 'Me' : selectedChat.sender}
+            </span>
+            <p className="text-sm">{selectedChat.message}</p>
+            <button
+              onClick={() => setSelectedChat(null)}
+              className="w-fit ml-auto text-sm font-semibold absolute top-2 right-2"
+            >
+              <FaTimes />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`w-full px-3 py-3 relative ${bgColor}`}>
+        <form className="flex items-center justify-between">
+          <button
+            onClick={(e: any) => {
+              e.preventDefault();
+              setShowEmojis(!showEmojis);
+            }}
+          >
+            <BsEmojiSmile className="text-2xl font-semibold cursor-pointer" />
+          </button>
+          {showEmojis && (
+            <div className="absolute bottom-20 z-40">
+              <Picker
                 data={data}
-                previewPosition={'none'}
-                onEmojiSelect={(emoji: any) => handleGlobalReaction(emoji)} 
+                dynamicWidth={false}
+                previewPosition="none"
+                perLine={7}
+                emojiSize={20}
+                onClickOutside={() => setShowEmojis(false)}
+                onEmojiSelect={(emoji: any) =>
+                  setShadowText(shadowText + emoji.native)
+                }
               />
-            <button onClick={() => { setReactionTarget(null); setShowQuickReactions(false); }} className='w-fit ml-auto text-sm text-gray-700 font-semibold absolute top-2 right-2'><FaTimes /></button>
-          </div>
-        ) }
-
-        {
-                selectedChat &&
-                <div className='w-full bg-black z-50 absolute bottom-20 px-5'>
-                  <div className='w-fit bg-gray-900 rounded-xl p-3 pr-10 flex flex-col gap-3 relative'>
-                    <span className='text-gray-500 text-xs'>Replying to {selectedChat.side ? "Me" : selectedChat.sender}</span>
-                    <p className='text-gray-400 text-sm'>{selectedChat.message}</p>
-                    <button onClick={() => setSelectedChat(null)} className='w-fit ml-auto text-sm text-gray-700 font-semibold absolute top-2 right-2'><FaTimes /></button>
-                  </div>
-                </div>
-        }
-        
-        <div className=' w-full bg-black px-3 py-3 relative'>
-            <form
-            className='flex items-center justify-between'>
-              <button onClick={(e:any ) => { e.preventDefault(); setShowEmojis(!showEmojis)}}>
-                <BsEmojiSmile className='text-gray-500 text-2xl font-semibold cursor-pointer'/>
-              </button>
-               { showEmojis && (
-                    <div className='absolute bottom-20 z-40'>
-                      <Picker
-                        data={data}
-                        dynamicWidth={false}
-                        previewPosition='none'
-                        perLine={7}
-                        emojiSize={20}
-                        onClickOutside={() => setShowEmojis(false)}
-                        onEmojiSelect={(emoji: any) => {setShadowText(shadowText + emoji.native)}}
-                      />
-                  </div>
-                  )
-                  }
-              <input type="text" onChange={(e: any) => handleTextChange(e)} value={shadowText} className='bg-black px-3 py-2 text-white focus:border-b-2  w-10/12 focus:outline-none' placeholder='Type here...'/>
-              {
-                shadowText && <button onClick={handleSubmitText} className='mx-5 '><BsFillSendFill className='text-2xl text-gray-500' /></button> 
-              }
-              
-            </form>
-        </div>
+            </div>
+          )}
+          <input
+            type="text"
+            onChange={(e: any) => handleTextChange(e)}
+            value={shadowText}
+            className={`px-3 py-2 w-10/12 focus:border-b-2 focus:outline-none ${
+              theme === 'dark'
+                ? 'bg-black text-white border-gray-700'
+                : 'bg-white text-gray-800 border-gray-300'
+            }`}
+            placeholder="Type here..."
+          />
+          {shadowText && (
+            <button onClick={handleSubmitText} className="mx-5">
+              <BsFillSendFill className="text-2xl" />
+            </button>
+          )}
+        </form>
+      </div>
     </section>
-  )
+  );
 }
+
