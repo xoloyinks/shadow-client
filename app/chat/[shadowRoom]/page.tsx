@@ -421,7 +421,7 @@ export default function Chat() {
               setShowQuickReactions={setShowQuickReactions}
             />
           ) : (
-            <p className="w-full h-full flex justify-center items-center text-sm">
+            <p className={`w-full ${theme === 'dark' && 'text-gray-500'} h-full flex justify-center items-center text-sm`}>
               No echoes in the shadows yet...
             </p>
           )}
