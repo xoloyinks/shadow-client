@@ -192,7 +192,7 @@ const SwipeableChatItem: React.FC<{
       <span className='mr-2 sm:text-[10px] text-[12px] font-semibold bottom-0 text-right'>{message.timestamp}</span>
 
       {/* Reactions */}
-      <div className='absolute max-w-[150px] overflow-x-scroll -bottom-9 rounded-full gap-1 left-0 flex z-20'>
+      <div className='absolute max-w-[150px] overflow-x-scroll -bottom-7 rounded-full gap-1 left-0 flex z-20'>
         {reactionsForMessage}
       </div>
 
