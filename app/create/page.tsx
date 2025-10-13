@@ -4,7 +4,6 @@ import React, { useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useToast } from "@/components/ui/use-toast"
-import { Button } from '@/components/ui/button';
 import { FaSpinner } from 'react-icons/fa';
 
 
@@ -24,7 +23,7 @@ export default function Create() {
     e.preventDefault();
      try{
         setLoading(true);
-        const checkIfIdExist = await axios.get('https://shadow-server-b7v0.onrender.com/validateId', {
+        const checkIfIdExist = await axios.get(`https://${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/validateId`, {
           params: { query: shadowId}
         });
 

@@ -35,7 +35,7 @@ export default function Pass() {
     console.log("shadow id: " + shadowId)
       try{
         setLoading(true);
-        const createShadow = await axios.post('https://shadow-server-b7v0.onrender.com/createShadow', {shadowId, shadowPass} );
+        const createShadow = await axios.post(`https://${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/createShadow`, {shadowId, shadowPass} );
         const response = createShadow.data;
         
         if(response){

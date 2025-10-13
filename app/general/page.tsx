@@ -17,7 +17,7 @@ export default function Page() {
     try{
       setLoading(true);
     //   const activate = await axios.get('http://localhost:8000/activateServer')
-      const activate = await axios.get('https://shadow-server-b7v0.onrender.com/activateServer');
+      const activate = await axios.get(`https://${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/activateServer`);
       const res = activate.data;
       if(res){
         const user = "shadow" + Math.floor(Math.random() * 100);

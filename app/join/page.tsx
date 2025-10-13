@@ -23,7 +23,7 @@ export default function Join() {
     e.preventDefault();
     try{
       setLoading(true);
-      const checkId = await axios.get('https://shadow-server-b7v0.onrender.com/checkId', {
+      const checkId = await axios.get(`https://${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/checkId`, {
         params: {
           id: shadowId
         }

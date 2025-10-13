@@ -24,7 +24,7 @@ export default function Pass() {
     localStorage.setItem('uniqueUser', user);
     try{
       setLoading(true);
-      const validate = await axios.get('https://shadow-server-b7v0.onrender.com/validatePass', {
+      const validate = await axios.get(`https://${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/validatePass`, {
         params:{
           id: shadowId,
           pass: pass 

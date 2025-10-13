@@ -15,8 +15,7 @@ import { GiSpiderMask } from "react-icons/gi";
 import { MdDarkMode, MdOutlineLightMode } from "react-icons/md";
 
 
-const socket = io('wss://shadow-server-b7v0.onrender.com');
-// const socket = io('ws://localhost:8000');
+const socket = io(`wss://${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}`);
 
 type Chat = {
   message: string,
@@ -192,7 +191,7 @@ const SwipeableChatItem: React.FC<{
       <span className='mr-2 sm:text-[10px] text-[12px] font-semibold bottom-0 text-right'>{message.timestamp}</span>
 
       {/* Reactions */}
-      <div className='absolute max-w-[150px] overflow-x-scroll -bottom-7 rounded-full gap-1 left-0 flex z-20'>
+      <div className='absolute max-w-[150px] overflow-x-scroll -bottom-5 rounded-full gap-1 left-0 flex z-20'>
         {reactionsForMessage}
       </div>
 
