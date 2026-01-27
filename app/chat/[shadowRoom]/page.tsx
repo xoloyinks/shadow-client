@@ -19,7 +19,7 @@ const socket = io(`wss://${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}`);
 
 type Chat = {
   message: string,
-  timestamp: string, 
+  timestamp: string,
   sender: string,
   side: boolean,
   messageType: string,
@@ -88,6 +88,7 @@ const SwipeableChatItem: React.FC<{
   const [translateX, setTranslateX] = useState(0);
   const [showDelete, setShowDelete] = useState(false);
   const [replySnap, setReplySnap] = useState(false);
+  const [showAllReactions, setShowAllReactions] = useState(false);
   const message = {
     ...datum,
     side: me
@@ -103,7 +104,7 @@ const SwipeableChatItem: React.FC<{
     onSwiped: (eventData) => {
       if (eventData.dir === "Right" && eventData.deltaX > 50) {
         // trigger reply
-        setReplySnap(true); 
+        setReplySnap(true);
         setTimeout(() => {
           setSelectedChat(message);
           setReplySnap(false);
@@ -148,65 +149,170 @@ const SwipeableChatItem: React.FC<{
         counts[emojiId.reaction] = (counts[emojiId.reaction] || 0) + 1;
       });
       return Object.entries(counts).map(([emojiId, count], idx) => (
-        <div key={idx} className='px-1 py-1 flex items-center rounded-full bg-gray-900'>
+        <div key={idx} className={`flex items-center rounded-full bg-gray-900 justify-center ${showAllReactions ? "border border-gray-800 px-3 py-2 rounded" : "px-1 py-1 "} `}>
           <span className='text-sm rounded-full'>{getNativeEmoji(emojiId)}</span>
           {count > 1 && (
-            <span className='ml-1 text-[10px] text-gray-400 font-bold'>{count}</span>
+            <span className='ml-1 text-[10px] text-gray-400 font-extrabold'>{count}</span>
           )}
         </div>
       ));
     });
 
+
+
   return (
     <motion.div
       {...longPressHandlers}
       {...handlers}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ 
+      initial={{ opacity: 0, y: 16 }}
+      animate={{
         opacity: 1,
         y: 0,
-        x: replySnap ? 40 : translateX
+        x: replySnap ? 40 : translateX,
       }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      exit={{ opacity: 0, y: 20 }}
-      className={`text-gray-400 relative mb-5 px-2 mx-2 w-fit max-w-[60%] py-2 bg-gray-800 flex ${
-        message.messageType==="text" ? "flex-col-reverse" : "flex-col"
-      } gap-2 rounded-xl ${message.side ? 'rounded-br-none ml-auto' : 'mr-auto rounded-bl-none'}`}
+      transition={{ type: "spring", stiffness: 280, damping: 22 }}
+      exit={{ opacity: 0, y: 16 }}
+      className={`
+        relative mb-5 px-3 py-2 max-w-[65%] min-w-[30%]
+        flex flex-col gap-1
+        text-sm leading-relaxed shadow-sm
+        select-none chat-bubble
+        ${message.side
+          ? "ml-auto bg-[#202c33] text-white rounded-2xl rounded-br-md"
+          : "mr-auto bg-[#202c33] text-gray-100 rounded-2xl rounded-bl-md"}
+      `}
     >
-
-      <span className='text-sm sm:text-xs font-semibold text-gray-500'>
+      {/* Sender */}
+      <span className="text-[11px] font-medium text-gray-400">
         {message.side ? "Me" : message.sender}
       </span>
 
-      { message.messageType==="replyText" && (
-        <div className='pl-2 border-l-2 border-gray-600'>
-          <span className='text-sm text-gray-500'>
-            Replying to {message.reply?.sender === localStorage.getItem('uniqueUser') ? "Me" : message.reply?.sender}
+      {/* Reply block */}
+      {message.messageType === "replyText" && (
+        <div className="pl-2 pr-1 py-1 border-l-2 border-gray-500 bg-black/10 rounded-sm">
+          <span className="text-[11px] text-gray-400">
+            Replying to{" "}
+            {message.reply?.sender === localStorage.getItem("uniqueUser")
+              ? "Me"
+              : message.reply?.sender}
           </span>
-          <p className='sm:text-xs text-sm italic text-gray-400'>{message.reply?.message}</p>
+          <p className="text-[12px] italic text-gray-300 line-clamp-2">
+            {message.reply?.message}
+          </p>
         </div>
       )}
 
-      <span className='tracking-wide sm:text-xs text-sm'>{message.message}</span>
-      <span className='mr-2 sm:text-[10px] text-[12px] font-semibold bottom-0 text-right'>{message.timestamp}</span>
+      {/* Message */}
+      <span className="text-[14px] sm:text-[13px] tracking-wide">
+        {message.message}
+      </span>
 
-      {/* Reactions */}
-      <div className='absolute max-w-[150px] overflow-x-scroll -bottom-5 rounded-full gap-1 left-0 flex z-20'>
-        {reactionsForMessage}
-      </div>
+      {/* Timestamp */}
+      <span className="self-end text-[10px] text-gray-400 mt-1">
+        {message.timestamp}
+      </span>
 
-      {/* Delete button for sender only */}
-      { showDelete && me && 
-        <motion.div  
-          initial={{opacity:0, x:-20}} 
-          animate={{opacity:1, x:0}} 
-          exit={{opacity:0, x:-20}}
-          className='absolute top-2 -left-[120px] z-50 backdrop-blur-xl p-2 rounded flex items-center gap-1 text-sm'
+      {/* REACTIONS */}
+      {reactionsForMessage.length > 0 && (
+        <div className="absolute -bottom-4 left-2 z-30">
+          {/* COLLAPSED */}
+          {!showAllReactions && (
+            <div
+              onClick={() =>
+                reactionsForMessage.length > 5 &&
+                setShowAllReactions(true)
+              }
+              className="
+                flex items-center gap-1
+                px-1 py-[2px]
+                bg-[#111b21]
+                rounded-full shadow-md
+                cursor-pointer
+                w-fit
+                overflow-hidden
+              "
+            >
+              {reactionsForMessage.slice(0, 5)}
+
+              {reactionsForMessage.length > 5 && (
+                <span className="text-[11px] text-gray-400 font-semibold px-1">
+                  +{reactionsForMessage.length - 5}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* EXPANDED */}
+          {showAllReactions && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.15 }}
+              className="
+                absolute left-0 -top-8 z-50
+                bg-[#111b21]
+                rounded-xl shadow-xl
+                px-5 py-5
+                w-[350px] 
+                max-h-[500px]
+                overflow-y-auto
+                flex flex-wrap gap-3
+                scrollbar-thin scrollbar-thumb-gray-700
+                select-none
+              "
+                      >
+                        
+                       
+                        {reactionsForMessage}
+                        
+
+                        <button
+                          onClick={() => setShowAllReactions(false)}
+                          className="
+                          absolute top-1 right-1
+                          w-4 h-4
+                          flex items-center justify-center
+                          text-gray-400 hover:text-white
+                        "
+                      >
+                <FaTimes size={10} />
+              </button>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* DELETE MENU */}
+      {showDelete && me && (
+        <motion.div
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12 }}
+          className="
+            absolute top-2 -left-[110px]
+            bg-[#111b21] text-gray-200
+            rounded-lg shadow-lg
+            px-3 py-2 text-sm
+            flex items-center gap-3
+            z-50
+          "
         >
-          <button onClick={() => setShowDelete(false)} className='text-sm text-red-500 hover:text-red-600 bg-red-400 rounded-full p-1'><FaTimes /></button>
-          <button onClick={(e: any) => handleDelete(e)} className='flex items-center gap-1 '><FaTrash className='text-red-500'/> Delete</button> 
+          <button
+            onClick={() => setShowDelete(false)}
+            className="text-gray-400 hover:text-white"
+          >
+            <FaTimes />
+          </button>
+
+          <button
+            onClick={(e: any) => handleDelete(e)}
+            className="flex items-center gap-1 text-red-400 hover:text-red-500"
+          >
+            <FaTrash /> Delete
+          </button>
         </motion.div>
-      }
+      )}
     </motion.div>
   );
 };
@@ -215,13 +321,13 @@ const SwipeableChatItem: React.FC<{
 const SwipeableChats: React.FC<SwipeableChatsProps> = ({ chat, setSelectedChat, reactions, setReactionTarget, setShowQuickReactions }) => (
   <>
     {chat.map((datum: Chat, key: number) => (
-      <SwipeableChatItem 
-        key={datum._id || key} 
-        datum={datum} 
-        setSelectedChat={setSelectedChat} 
-        reactions={reactions} 
-        setReactionTarget={setReactionTarget} 
-        setShowQuickReactions={setShowQuickReactions} 
+      <SwipeableChatItem
+        key={datum._id || key}
+        datum={datum}
+        setSelectedChat={setSelectedChat}
+        reactions={reactions}
+        setReactionTarget={setReactionTarget}
+        setShowQuickReactions={setShowQuickReactions}
       />
     ))}
   </>
@@ -296,11 +402,11 @@ export default function Chat() {
       });
       socket.on('prevReactions', (data: any) => setReactions(data));
 
-      const audio = new Audio('/sounds/mixkit-gaming-lock-2848.wav');
+      // const audio = new Audio('/sounds/mixkit-gaming-lock-2848.wav');
       socket.on('chat', (data: Chat) => {
         const id = localStorage.getItem('uniqueUser');
         const side = data.sender === id ? true : false;
-        if (!side) audio.play();
+        // if (!side) audio.play();
         setMessageData((prev) => [...prev, { ...data, side }]);
       });
     } else {
@@ -406,11 +512,10 @@ export default function Chat() {
 
       <div
         ref={chatScroll}
-        className={`pt-24 h-[91dvh] ${
-          selectedChat ? 'pb-24' : ''
-        } overflow-y-scroll ${bgColor}/20 transition-all duration-500`}
+        className={`pt-24 h-[91dvh] ${selectedChat ? 'pb-24' : ''
+          } overflow-y-scroll ${bgColor}/20 transition-all duration-500`}
       >
-        <div className="py-3">
+        <div className="py-3 px-5">
           {messageData.length > 0 ? (
             <SwipeableChats
               chat={messageData}
@@ -455,19 +560,39 @@ export default function Chat() {
       )}
 
       {selectedChat && (
-        <div className="w-full z-50 absolute bottom-20 px-5">
+        <div className="absolute bottom-16 w-full px-4 z-50">
           <div
-            className={`w-fit ${bubbleColor} rounded-xl p-3 pr-10 flex flex-col gap-3 relative`}
+            className={`
+        relative w-fit max-w-[85%]
+        px-3 py-5 pr-10
+        flex flex-col gap-1
+        rounded-2xl shadow-md
+        border-l-4
+        ${selectedChat.side
+                ? "ml-auto bg-[#005c4b]/90 text-white border-l-[#25d366]"
+                : "mr-auto bg-[#202c33] text-gray-100 border-l-[#8696a0]"}
+      `}
           >
-            <span className="text-xs">
-              Replying to {selectedChat.side ? 'Me' : selectedChat.sender}
+            {/* Header */}
+            <span className="text-[11px] font-medium text-gray-300">
+              Replying to {selectedChat.side ? "Me" : selectedChat.sender}
             </span>
-            <p className="text-sm">{selectedChat.message}</p>
+
+            {/* Preview text */}
+            <p className="text-[13px] text-gray-200 line-clamp-2">
+              {selectedChat.message}
+            </p>
+
+            {/* Close button */}
             <button
               onClick={() => setSelectedChat(null)}
-              className="w-fit ml-auto text-sm font-semibold absolute top-2 right-2"
+              className="
+          absolute top-2 right-2
+          text-gray-400 hover:text-white
+          transition-colors
+        "
             >
-              <FaTimes />
+              <FaTimes size={12} />
             </button>
           </div>
         </div>
@@ -502,11 +627,10 @@ export default function Chat() {
             type="text"
             onChange={(e: any) => handleTextChange(e)}
             value={shadowText}
-            className={`px-3 py-2 w-10/12 focus:border-b-2 focus:outline-none ${
-              theme === 'dark'
-                ? 'bg-black text-white border-gray-700'
-                : 'bg-white text-gray-800 border-gray-300'
-            }`}
+            className={`px-3 py-2 w-10/12 focus:border-b-2 focus:outline-none ${theme === 'dark'
+              ? 'bg-black text-white border-gray-700'
+              : 'bg-white text-gray-800 border-gray-300'
+              }`}
             placeholder="Type here..."
           />
           {shadowText && (
