@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client'
-import { FaTimes, FaTrash } from "react-icons/fa";
+import { FaTimes, FaTimesCircle, FaTrash } from "react-icons/fa";
 import { BsFillSendFill } from "react-icons/bs";
 import { UserData } from '@/app/context';
 import { BsEmojiSmile } from "react-icons/bs";
@@ -270,13 +270,13 @@ const SwipeableChatItem: React.FC<{
                         <button
                           onClick={() => setShowAllReactions(false)}
                           className="
-                          absolute top-1 right-1
+                          absolute top-2 right-2
                           w-4 h-4
                           flex items-center justify-center
                           text-gray-400 hover:text-white
                         "
                       >
-                <FaTimes size={10} />
+                <FaTimesCircle size={20} />
               </button>
             </motion.div>
           )}
