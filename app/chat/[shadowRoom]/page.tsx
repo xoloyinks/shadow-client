@@ -158,6 +158,19 @@ const SwipeableChatItem: React.FC<{
       ));
     });
 
+  // Utility to check if a string is only emojis
+ const isEmojiOnly = (text: string) => {
+  if (!text) return false;
+
+  // Remove all whitespace
+  const trimmed = text.replace(/\s/g, "");
+
+  // Regex to match most common emojis (including smileys, symbols, flags, gestures, etc.)
+  const emojiRegex =
+    /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)+$/u;
+
+  return emojiRegex.test(trimmed);
+};
 
 
   return (
@@ -203,10 +216,15 @@ const SwipeableChatItem: React.FC<{
       )}
 
       {/* Message */}
-      <span className="text-[14px] sm:text-[13px] tracking-wide">
+      {/* Message */}
+      <span
+        className={`tracking-wide ${isEmojiOnly(message.message)
+            ? "text-3xl sm:text-4xl" // bigger for emoji-only messages
+            : "text-[14px] sm:text-[13px]" // normal text
+          }`}
+      >
         {message.message}
       </span>
-
       {/* Timestamp */}
       <span className="self-end text-[10px] text-gray-400 mt-1">
         {message.timestamp}
@@ -261,21 +279,21 @@ const SwipeableChatItem: React.FC<{
                 scrollbar-thin scrollbar-thumb-gray-700
                 select-none
               "
-                      >
-                        
-                       
-                        {reactionsForMessage}
-                        
+            >
 
-                        <button
-                          onClick={() => setShowAllReactions(false)}
-                          className="
+
+              {reactionsForMessage}
+
+
+              <button
+                onClick={() => setShowAllReactions(false)}
+                className="
                           absolute top-2 right-2
                           w-4 h-4
                           flex items-center justify-center
                           text-gray-400 hover:text-white
                         "
-                      >
+              >
                 <FaTimesCircle size={20} />
               </button>
             </motion.div>
