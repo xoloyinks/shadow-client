@@ -23,7 +23,7 @@ export default function Home() {
 
   if (showSplash) {
     return (
-      <section className="w-screen h-screen bg-black flex flex-col items-center justify-center">
+      <section className="w-screen h-[100dvh] bg-black flex flex-col items-center justify-center">
         {/* Simple animated logo/text */}
         <h1 className="text-3xl text-white animate-pulse font-extrabold tracking-wider">SHADOW</h1>
       </section>
