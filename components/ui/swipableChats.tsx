@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react"
 import { useSwipeable } from "react-swipeable"
 import { AnimatePresence, motion } from "framer-motion";
 import { FaTimes, FaTimesCircle, FaTrash } from "react-icons/fa";
-
+import data from "@emoji-mart/data";
 
 type Chat = {
   message: string,
@@ -191,7 +191,7 @@ const SwipeableChatItem: React.FC<{
 
       {/* Reply block */}
       {message.messageType === "replyText" && (
-        <div className="pl-2 pr-1 py-1 border-l-2 border-gray-500 bg-black/10 rounded-sm">
+        <div className="py-1 pl-2 pr-1 border-l-2 border-gray-500 rounded-sm bg-black/10">
           <span className="text-[11px] text-gray-400">
             Replying to{" "}
             {message.reply?.sender === localStorage.getItem("uniqueUser")
@@ -220,7 +220,7 @@ const SwipeableChatItem: React.FC<{
 
       {/* REACTIONS */}
       {reactionsForMessage.length > 0 && (
-        <div className="absolute -bottom-4 left-2 z-30">
+        <div className="absolute z-30 -bottom-4 left-2">
           {/* COLLAPSED */}
           {!showAllReactions && (
             <div
@@ -275,12 +275,7 @@ const SwipeableChatItem: React.FC<{
 
               <button
                 onClick={() => setShowAllReactions(false)}
-                className="
-                          absolute top-2 right-2
-                          w-4 h-4
-                          flex items-center justify-center
-                          text-gray-400 hover:text-white
-                        "
+                className="absolute flex items-center justify-center w-4 h-4 text-gray-400  top-2 right-2 hover:text-white"
               >
                 <FaTimesCircle size={20} />
               </button>
