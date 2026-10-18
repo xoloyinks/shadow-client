@@ -195,6 +195,7 @@ export default function Chat() {
       }}
       className={` sm:w-[30vw] mx-auto relative transition-all duration-500`}
     >
+      
       <div
         className={`absolute top-0 w-full text-center z-50 ${headerColor} transition-all duration-500`}
       >
